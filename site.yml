@@ -1,0 +1,55 @@
+- hosts: lab4
+  become: yes
+
+  tasks:
+    - name: Install packages
+      apt:
+        name:
+          - python3
+        state: present
+        update_cache: yes
+
+    - name: Create service directory
+      file:
+        path: /opt/lab4-service/html
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Deploy index.html
+      copy:
+        dest: /opt/lab4-service/html/index.html
+        content: "Nozdryakova"
+
+    - name: Copy service script
+      copy:
+        src: service.sh
+        dest: /opt/lab4-service/service.sh
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Copy systemd unit
+      copy:
+        src: lab4-service.service
+        dest: /etc/systemd/system/lab4-service.service
+
+    - name: Reload systemd
+      command: systemctl daemon-reload
+
+    - name: Enable and start service
+      systemd:
+        name: lab4-service
+        enabled: yes
+        state: started
+
+    - name: Healthcheck
+      uri:
+        url: http://127.0.0.1:8000/
+        status_code: 200
+      register: health
+
+    - name: Show health status
+      debug:
+        var: health.status
